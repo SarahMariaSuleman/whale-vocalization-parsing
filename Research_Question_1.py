@@ -13,10 +13,12 @@ import os
 import pandas as pd
 import datetime as dt
 from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
 
 #Switches and Settings for looping
-call_type="C10"
-pod_name="N16"
+call_type="N05"
+pod_name="C10"
 parse_all_calls=True
 temp=1
 
@@ -32,8 +34,8 @@ for subdir, dirs, files in os.walk("mini_orchive/call-catalog/wav"):
     for file in files:
 
         #If the call type and pod name specified are found in the WAV file name
-        #if ((call_type in file)):
-        if(temp==1):
+        if (call_type in file):
+        #if(temp==1):
                 
                 #Split the file name by - to extract the call information
                 f_info = file.split("-")
@@ -90,17 +92,23 @@ by_year = new.groupby("year", as_index=False)["FF average"].mean()
 #Create a scatter plot 
 plt.scatter(by_year["year"], by_year["FF average"])
 
+train_set, test_set = train_test_split(by_year, test_size=0.2, random_state=42)
+
 #Perform linear regression using sklearn library
 lin_reg = LinearRegression()
 
 #Fit the model to the data
-lin_reg.fit(by_year["year"].to_numpy().reshape(-1,1), by_year["FF average"].to_numpy())
+lin_reg.fit(train_set["year"].to_numpy().reshape(-1,1), train_set["FF average"].to_numpy())
+
+y_pred = lin_reg.predict(test_set["year"].to_numpy().reshape(-1,1))
 
 #Create line based on intercept and coefficent returned from linear regression model
-y_vals = lin_reg.intercept_ + lin_reg.coef_ * by_year["year"].to_numpy().reshape(-1,1)
+y_vals = lin_reg.intercept_ + lin_reg.coef_ * train_set["year"].to_numpy().reshape(-1,1)
 
 #Plot line to show trend
-plt.plot(by_year["year"].to_numpy().reshape(-1,1), y_vals, 'r-')
+plt.plot(train_set["year"].to_numpy().reshape(-1,1), y_vals, 'r-')
+
+print(r2_score(test_set["FF average"], y_pred))
 
 #Show plot
 plt.show()
